@@ -1,0 +1,165 @@
+<html>
+<title>Fish Game</title>
+<canvas id="gc" width="1200" height="800"></canvas>
+<div>
+    <div class="stat">
+        Current speed (x, y): <div id="speed"></div>
+    </div>
+    <div class="stat">
+        Current position (x, y): <div id="pos"></div>
+    </div>
+    <div class="stat">
+        Food eaten: <div id="food"></div>
+    </div>
+</div>
+<style>
+    html {
+        font-family: Arial;
+        font-size: 24px;
+    }
+    .stat {
+        float: left;
+        margin-left: 15px;
+    }
+</style>
+<script>
+var canvas = document.getElementById("gc");
+var context = canvas.getContext("2d");
+drawBackground();
+
+var xv = 0, yv = 0;
+var xpos = 600, ypos = 600;
+var maxspeed = 6;
+var keyState = {};
+//https://stackoverflow.com/questions/12273451/how-to-fix-delay-in-javascript-keydown
+window.addEventListener('keydown',function(e){
+    keyState[e.keyCode || e.which] = true;
+},true);
+
+window.addEventListener('keyup',function(e){
+    keyState[e.keyCode || e.which] = false;
+},true);
+
+var img = new Image();
+img.onload = function() {
+    context.drawImage(img, xpos, ypos);
+};
+img.src = 'fish.png';
+
+var foodImage = new Image();
+foodImage.onload = function() {
+    context.drawImage(foodImage, xpos, ypos);
+};
+foodImage.src = 'food.png';
+
+setInterval(tick, 1000/30);
+var stats = {food: 0};
+
+function tick(){
+    drawBackground();
+    if(!foodObj.ready){
+        spawnFood();
+    }
+    context.drawImage(foodImage, foodObj.x, foodObj.y);
+
+    //make food sink
+    if(foodObj.y < canvas.height-foodImage.height){
+        foodObj.y += 1;
+    }
+
+    setSpeed();
+    xpos += xv;
+    ypos += yv;
+
+    //prevent fishy from leaving canvas
+    if (xpos < 0) {xpos = 0; xv = 0;}
+    if (xpos > canvas.width-img.width) {xpos = canvas.width-img.width; xv = 0;}
+    if (ypos < 0) {ypos = 0, yv = 0;}
+    if (ypos > canvas.height-img.height) {ypos = canvas.height-img.height; yv = 0;}
+
+    context.drawImage(img, xpos, ypos);
+    checkForFoodCollision({x: xpos, y: ypos, width: img.width, height: img.height}, {x: foodObj.x, y: foodObj.y, width: foodImage.width, height: foodImage.height});
+    stats.speed = xv.toFixed(1) + ", " + yv.toFixed(1);
+    stats.pos = xpos.toFixed(1) + ", " + ypos.toFixed(1);
+    updateStats();
+}
+
+function updateStats(){
+    document.getElementById("pos").textContent = stats.pos;
+    document.getElementById("speed").textContent = stats.speed;
+    document.getElementById("food").textContent = stats.food;
+}
+
+function drawBackground(){
+    var grad = context.createLinearGradient(0, 800, 0, 0);
+    grad.addColorStop(0, "#032D39");
+    grad.addColorStop(1, "#4279BC");
+
+    context.fillStyle = grad;
+    context.fillRect(0,0,canvas.width,canvas.height);
+}
+
+var foodObj = {x: -100, y: -100, ready: false};
+function spawnFood(){
+    foodObj.x = (Math.random() * (canvas.width-foodImage.width)) << 0;
+    foodObj.y = (Math.random() * (canvas.height-foodImage.height)) << 0;
+    foodObj.ready = true;
+}
+
+function checkForFoodCollision(a, b){
+    if (a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y)
+    {
+        //if collision detected, remove food
+        foodObj.x = -100;
+        foodObj.y = -100;
+        foodObj.ready = false;
+        stats.food++;
+    }
+}
+
+var accel = 0.75,
+    stopMultiplier = 3;
+var xslow = 0.25,
+    yslow = 0.25;
+function setSpeed(){
+
+    if(keyState[37]){
+        if(xv <= 0){ xv += -accel; }
+        else {xv += stopMultiplier * -accel}
+        img.src = "fish.png";
+    }
+    if(keyState[38]){
+        if(yv <= 0){ yv += -accel; }
+        else {yv += stopMultiplier * -accel}
+    }
+    if(keyState[39]){
+        if(xv >= 0){ xv += accel; }
+        else {xv += stopMultiplier * accel}
+        img.src = "fish reverse.png";
+    }
+    if(keyState[40]){
+        if(yv >= 0){ yv += accel; }
+        else {yv += stopMultiplier * accel}
+    }
+    if(!keyState[37] && !keyState[39]){
+        if(xv < 0){ xv += xslow; }
+        else if(xv > 0){ xv -= xslow; }
+    }
+    if(!keyState[38] && !keyState[40]){
+        if(yv < 0){ yv += yslow; }
+        else if(yv > 0){ yv -= yslow; }
+    }
+    /*
+    //limit fishy's max speed
+    if(xv < -maxspeed){xv = -maxspeed}
+    if(xv > maxspeed){xv = maxspeed}
+    if(yv < -maxspeed){yv = -maxspeed}
+    if(yv > maxspeed){yv = maxspeed}
+    */
+}
+
+</script>
+</html>
